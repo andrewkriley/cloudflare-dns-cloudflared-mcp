@@ -1,10 +1,37 @@
-# Copy to .dev.vars and fill in values for local development
-# DO NOT commit .dev.vars
+# Local development secrets
+# Copy this file to .dev.vars and fill in your values.
+# .dev.vars is gitignored and must NEVER be committed.
+#
+# ─── Token architecture ────────────────────────────────────────────────────────
+#
+#  CF_API_TOKEN   (this file / local dev only)
+#    Used at runtime by the MCP server to call Cloudflare DNS and Zero Trust APIs.
+#    ⚠️  Never put this in GitHub. Store on the Worker with:
+#        wrangler secret put CF_API_TOKEN
+#    Permissions required:
+#      Zone > DNS > Edit
+#      Account > Zero Trust > Edit
+#    Create at: https://dash.cloudflare.com/profile/api-tokens
+#    Recommended: set a 90-day expiry at creation time.
+#
+#  CF_DEPLOY_TOKEN   (GitHub production Environment secret only)
+#    Used by GitHub Actions CI/CD to run `wrangler deploy`.
+#    Never needed locally — do not put it here.
+#    Permissions required:
+#      Account > Workers Scripts > Edit
+#    Create at: https://dash.cloudflare.com/profile/api-tokens
+#    Store in: GitHub > Settings > Environments > production > Secrets
+#    Recommended: set a 90-day expiry at creation time.
+#
+#  CF_ACCOUNT_ID   (this file + GitHub production Environment secret)
+#    Your Cloudflare account ID — visible in the Cloudflare dashboard URL.
+#    Not sensitive but required by both local dev and CI.
+#    Find at: https://dash.cloudflare.com > right sidebar > Account ID
+#
+# ──────────────────────────────────────────────────────────────────────────────
 
-# Cloudflare API token — needs:
-#   Zone > DNS > Edit
-#   Account > Zero Trust > Edit
+# Runtime admin token (local dev only — also set via `wrangler secret put CF_API_TOKEN`)
 CF_API_TOKEN=your_cloudflare_api_token_here
 
-# Your Cloudflare Account ID (visible in dash.cloudflare.com URL)
+# Account ID (used by wrangler locally)
 CF_ACCOUNT_ID=your_account_id_here
