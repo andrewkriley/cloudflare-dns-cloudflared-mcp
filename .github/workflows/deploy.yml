@@ -1,34 +1,27 @@
-name: Deploy
+name: Docker Build
 
 on:
   push:
+    branches: ["main", "dev"]
+  pull_request:
     branches: ["main"]
-  workflow_dispatch:
 
 jobs:
-  deploy:
-    name: Deploy to Cloudflare Workers
+  docker-build:
+    name: Docker Build Check
     runs-on: ubuntu-latest
-    environment: production  # requires manual approval gate
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v6
         with:
-          node-version: "20"
-          cache: "npm"
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: TypeScript check
-        run: npx tsc --noEmit
-
-      - name: Deploy to Workers
-        run: npx wrangler deploy
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CF_DEPLOY_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          context: .
+          push: false
+          tags: cloudflare-dns-zt-mcp:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

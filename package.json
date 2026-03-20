@@ -1,21 +1,23 @@
 {
   "name": "cloudflare-dns-zt-mcp",
-  "version": "1.0.0",
-  "description": "Remote MCP server on Cloudflare Workers for DNS and Zero Trust administration",
-  "main": "src/index.ts",
+  "version": "2.0.0",
+  "description": "Self-hosted MCP server for Cloudflare DNS and Zero Trust administration",
+  "type": "module",
+  "main": "dist/index.js",
   "scripts": {
-    "dev": "wrangler dev",
-    "start": "wrangler dev",
-    "deploy": "wrangler deploy",
-    "cf-typegen": "wrangler types"
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "node --watch --experimental-strip-types src/index.ts",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "agents": "^0.0.85",
+    "@modelcontextprotocol/sdk": "^1.10.2",
+    "express": "^4.21.2",
     "zod": "^3.23.8"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20250224.0",
-    "typescript": "^5.5.2",
-    "wrangler": "^4.0.0"
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.17.30",
+    "typescript": "^5.5.2"
   }
 }
