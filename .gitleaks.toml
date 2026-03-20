@@ -1,0 +1,13 @@
+# Gitleaks configuration
+# https://github.com/gitleaks/gitleaks
+
+title = "cloudflare-dns-zt-mcp — Gitleaks Config"
+
+[allowlist]
+  description = "Allowlisted false positives"
+  regexes = [
+    # Example placeholder in .dev.vars.example — not a real token
+    "your_cloudflare_api_token_here",
+    "your_account_id_here",
+    "your_deploy_token_here",
+  ]

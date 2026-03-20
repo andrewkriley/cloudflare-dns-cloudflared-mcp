@@ -1,6 +1,6 @@
 # cloudflare-dns-zt-mcp
 
-Remote MCP server deployed on Cloudflare Workers for administering **DNS records** and **Zero Trust** (Access, Gateway, Tunnels) via Claude Code or any MCP-compatible client.
+Self-hosted MCP server for administering **Cloudflare DNS records** and **Zero Trust** (Access, Gateway, Tunnels). Runs as a Docker container on your own infrastructure. Connects to Claude Code or any MCP-compatible client via bearer-token-authenticated HTTP.
 
 ---
 
@@ -45,23 +45,81 @@ Remote MCP server deployed on Cloudflare Workers for administering **DNS records
 
 ---
 
-## Setup
+## Quick start
 
-### Prerequisites
-
-- Node.js 18+
-- [Wrangler CLI](https://developers.cloudflare.com/workers/wrangler/install-and-update/) (`npm install -g wrangler`)
-- Cloudflare account with Workers, Zero Trust, and DNS access
-
-### 1. Clone and install
+### 1. Clone
 
 ```bash
 git clone git@github.com:andrewkriley/cloudflare-dns-zt-mcp.git
 cd cloudflare-dns-zt-mcp
-npm install
 ```
 
-### 2. Create a Cloudflare API token
+### 2. Configure
+
+```bash
+cp .env.example .env
+```
+
+Edit `.env` and fill in three values:
+
+| Variable | Description |
+|----------|-------------|
+| `CF_API_TOKEN` | Cloudflare API token with DNS Edit + Zero Trust Edit |
+| `CF_ACCOUNT_ID` | Your Cloudflare account ID |
+| `MCP_BEARER_TOKEN` | Shared secret for MCP client auth — generate with `openssl rand -hex 32` |
+
+### 3. Run
+
+```bash
+docker compose up -d
+```
+
+The server starts at `http://localhost:3000/mcp`.
+
+Check it's healthy:
+```bash
+curl http://localhost:3000/health
+# {"status":"ok"}
+```
+
+### 4. Connect Claude Code
+
+Add to `~/.claude/settings.json`:
+
+```json
+{
+  "mcpServers": {
+    "cloudflare-admin": {
+      "command": "npx",
+      "args": [
+        "mcp-remote",
+        "http://localhost:3000/mcp",
+        "--header",
+        "Authorization: Bearer YOUR_MCP_BEARER_TOKEN"
+      ]
+    }
+  }
+}
+```
+
+Replace `YOUR_MCP_BEARER_TOKEN` with the value from your `.env`.
+
+---
+
+## Secrets & Security
+
+### Environment variables
+
+| Variable | Sensitivity | Purpose |
+|----------|-------------|---------|
+| `CF_API_TOKEN` | Secret | Cloudflare API admin token — DNS + ZT permissions |
+| `CF_ACCOUNT_ID` | Low | Cloudflare account identifier |
+| `MCP_BEARER_TOKEN` | Secret | Shared secret for MCP endpoint auth |
+| `MCP_PORT` | Low | HTTP port (default: 3000) |
+
+All are loaded from `.env` via `docker compose`. The `.env` file is gitignored and must never be committed.
+
+### Creating the Cloudflare API token
 
 Go to [dash.cloudflare.com/profile/api-tokens](https://dash.cloudflare.com/profile/api-tokens) and create a token with:
 
@@ -69,92 +127,79 @@ Go to [dash.cloudflare.com/profile/api-tokens](https://dash.cloudflare.com/profi
 |-------|------------|
 | Zone > DNS | Edit |
 | Account > Zero Trust | Edit |
-| Account > Account Settings | Read |
 
-### 3. Configure local development
+Set a **90-day expiry** at creation time.
 
-```bash
-cp .dev.vars.example .dev.vars
-# Edit .dev.vars and fill in CF_API_TOKEN and CF_ACCOUNT_ID
-```
+### Token rotation (every 90 days)
 
-### 4. Run locally
+1. Create a new token at [dash.cloudflare.com/profile/api-tokens](https://dash.cloudflare.com/profile/api-tokens)
+2. Update `CF_API_TOKEN` in `.env`
+3. Restart the container: `docker compose restart`
+4. Delete the old token in the Cloudflare dashboard
 
-```bash
-npm start
-# Server runs at http://localhost:8788/mcp
-```
-
-Test with MCP Inspector:
-```bash
-npx @modelcontextprotocol/inspector@latest
-# Open http://localhost:5173, connect to http://localhost:8788/mcp
-```
-
-### 5. Deploy to Cloudflare Workers
+### Generating a bearer token
 
 ```bash
-wrangler secret put CF_API_TOKEN
-wrangler secret put CF_ACCOUNT_ID
-npm run deploy
+openssl rand -hex 32
 ```
 
-The server will be available at `https://cloudflare-dns-zt-mcp.<your-subdomain>.workers.dev/mcp`
+Update `MCP_BEARER_TOKEN` in `.env` and update your Claude Code `settings.json` to match.
 
-### 6. Add to Claude Code
+### Security controls
 
-Add to `~/.claude/settings.json` under `mcpServers`:
-
-```json
-{
-  "mcpServers": {
-    "cloudflare-admin": {
-      "command": "npx",
-      "args": ["mcp-remote", "https://cloudflare-dns-zt-mcp.<your-subdomain>.workers.dev/mcp"]
-    }
-  }
-}
-```
-
-Or for local development:
-
-```json
-{
-  "mcpServers": {
-    "cloudflare-admin": {
-      "command": "npx",
-      "args": ["mcp-remote", "http://localhost:8788/mcp"]
-    }
-  }
-}
-```
-
----
-
-## Security
-
-This server exposes destructive operations (deleting DNS records, Gateway rules, Access apps). Protect the `/mcp` endpoint using one of:
-
-- **Cloudflare Access** — put the Worker behind a Zero Trust Access application requiring identity verification
-- **Cloudflare API Shield** — restrict by mTLS certificate
-- **Bearer token** — add a shared secret check in the Worker fetch handler
-
-Do **not** expose this server publicly without authentication.
+| Control | What it does |
+|---------|--------------|
+| Bearer token auth | All `/mcp` requests require `Authorization: Bearer <token>` |
+| Non-root container | Process runs as unprivileged `mcp` user |
+| Read-only filesystem | Container root filesystem is read-only (`tmpfs` for `/tmp`) |
+| No new privileges | `no-new-privileges:true` prevents privilege escalation |
+| `/health` is auth-free | Returns `{"status":"ok"}` only — no sensitive data exposed |
 
 ---
 
 ## Development
 
+### Run locally without Docker
+
 ```bash
-# Watch mode
-npm start
-
-# Deploy
-npm run deploy
-
-# Tail logs
-wrangler tail
-
-# Type generation from wrangler bindings
-npm run cf-typegen
+npm install
+cp .env.example .env
+# fill in .env
+npm run dev
 ```
+
+### Build and type-check
+
+```bash
+npm run build       # compile TypeScript
+npm run typecheck   # type-check without emitting
+```
+
+### Docker commands
+
+```bash
+docker compose up -d          # start in background
+docker compose logs -f        # tail logs
+docker compose restart        # restart after .env change
+docker compose down           # stop and remove container
+docker compose build --no-cache  # force rebuild image
+```
+
+---
+
+## CI
+
+Every push and pull request runs:
+
+| Check | Tool | Purpose |
+|-------|------|---------|
+| Secret scanning | Gitleaks | Detects accidentally committed tokens |
+| TypeScript check | `tsc --noEmit` | Strict compile-time correctness |
+| Dependency audit | `npm audit --audit-level=high` | Flags high/critical vulnerabilities |
+| Docker build | `docker/build-push-action` | Verifies image builds successfully |
+
+---
+
+## Contributing
+
+`main` is protected — all changes via PR from `dev`. CI must pass and 1 approval required before merge. Direct pushes to `main` are blocked.
