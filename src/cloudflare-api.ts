@@ -187,18 +187,6 @@ export async function putTunnelConfig(
   });
 }
 
-export async function getOrCreateAccessSshCa(
-  token: string,
-  accountId: string
-): Promise<unknown> {
-  try {
-    return await cfFetch(token, `/accounts/${accountId}/access/gateway_ca`);
-  } catch {
-    // CA doesn't exist yet — create it
-    return cfFetch(token, `/accounts/${accountId}/access/gateway_ca`, { method: "POST" });
-  }
-}
-
 // ── Tunnels ───────────────────────────────────────────────────────────────────
 
 export async function listTunnels(
