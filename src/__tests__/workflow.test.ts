@@ -85,11 +85,11 @@ describe('exposeSshService', () => {
       proxied: true,
     });
 
-    // 5. Create Access application
+    // 5. Create Access application with SSH browser rendering enabled
     expect(api.createAccessApplication).toHaveBeenCalledWith(TOKEN, ACCOUNT_ID, {
       name: hostname,
       domain: hostname,
-      type: 'self_hosted',
+      type: 'ssh',
       session_duration: '24h',
     });
 
