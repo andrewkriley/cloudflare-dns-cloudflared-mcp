@@ -75,6 +75,20 @@ Run integration tests (CI only): `npm run test:integration`
 | `CF_API_TOKEN_CI` | Secret | Integration test token (Tunnel Edit + Zero Trust Edit + DNS Edit + Zone Read) |
 | `CF_TEST_ZONE_ID` | Variable | Zone for integration test DNS records — accepts domain name or zone ID |
 
+## Known limitation: browser SSH and short-lived certs
+
+Cloudflare's browser-rendered SSH terminal uses **libssh2 1.9.0**, which does not support OpenSSH certificate authentication (added in libssh2 1.11.0). This means `service_expose_ssh` produces a correct server-side sshd config, but the Cloudflare browser terminal cannot present the short-lived cert — it falls back to prompting for a private key.
+
+**Diagnosed via:** `sshd -T` (config correct), CA key fingerprint match confirmed, Access app type `ssh` confirmed, `DEBUG3` sshd log showing `Remote software version libssh2_1.9.0_DEV`.
+
+**Short-lived certs work** for native SSH via `cloudflared` ProxyCommand — the limitation is browser-only.
+
+**Workarounds for browser-only access:**
+- **Password auth** — acceptable behind Access/Google OAuth since SSH is not publicly exposed
+- **wetty** — deploy as a web service, expose via `service_expose_web`; the browser connects to wetty over HTTPS and wetty SSHes to localhost, bypassing libssh2 entirely
+
+Do not attempt to debug sshd cert config further — the server side is correct. The root cause is on Cloudflare's infrastructure.
+
 ## What was deliberately cut
 
 Gateway tools (firewall rules, DNS filtering lists) were removed in v3.0.0. The scope is specifically tunnel-based service exposure, not general Zero Trust policy management.
