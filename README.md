@@ -96,23 +96,15 @@ curl http://localhost:3000/health
 
 ### 4. Connect Claude Code
 
-Add to `~/.claude/settings.json`:
+Run once to register the server:
 
-```json
-{
-  "mcpServers": {
-    "cloudflare-admin": {
-      "command": "npx",
-      "args": [
-        "mcp-remote",
-        "http://localhost:3000/mcp",
-        "--header",
-        "Authorization: Bearer YOUR_MCP_BEARER_TOKEN"
-      ]
-    }
-  }
-}
+```bash
+claude mcp add cloudflare-admin --transport http \
+  --header "Authorization: Bearer YOUR_MCP_BEARER_TOKEN" \
+  http://localhost:3000/mcp
 ```
+
+Replace `YOUR_MCP_BEARER_TOKEN` with the value from your `.env`.
 
 ### 5. Example usage
 
