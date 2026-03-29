@@ -1,5 +1,7 @@
 # cloudflare-dns-cloudflared-mcp
 
+![Architecture](docs/architecture.svg)
+
 Self-hosted MCP server for administering **Cloudflare DNS** and **cloudflared tunnel** services — expose SSH hosts, web UIs, and other services on your home network through Cloudflare Tunnels with Google OAuth access control.
 
 Runs as a Docker container on your own infrastructure. Connects to Claude Code or any MCP-compatible client via bearer-token-authenticated HTTP.
