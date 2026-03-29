@@ -1,0 +1,178 @@
+<svg width="960" height="540" viewBox="0 0 960 540" xmlns="http://www.w3.org/2000/svg" font-family="'Courier New', Courier, monospace">
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#475569"/>
+    </marker>
+    <marker id="arr-orange" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#ea580c"/>
+    </marker>
+    <marker id="arr-green" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#16a34a"/>
+    </marker>
+    <pattern id="grid" width="30" height="30" patternUnits="userSpaceOnUse">
+      <path d="M 30 0 L 0 0 0 30" fill="none" stroke="#0e2040" stroke-width="0.5"/>
+    </pattern>
+  </defs>
+
+  <!-- Background -->
+  <rect width="960" height="540" fill="#060d1a"/>
+  <rect width="960" height="540" fill="url(#grid)"/>
+
+  <!-- Title -->
+  <text x="480" y="28" text-anchor="middle" fill="#93c5fd" font-size="13" letter-spacing="3" font-weight="bold">CLOUDFLARE-DNS-CLOUDFLARED-MCP · SYSTEM BLUEPRINT</text>
+  <line x1="40" y1="36" x2="920" y2="36" stroke="#1e3a5f" stroke-width="1"/>
+
+  <!-- ═══════════════════════════════════════════════════ -->
+  <!-- ADMIN PLANE                                        -->
+  <!-- ═══════════════════════════════════════════════════ -->
+  <rect x="10" y="46" width="940" height="215" rx="6" fill="none" stroke="#1e3a5f" stroke-width="1" stroke-dasharray="4,3"/>
+  <text x="22" y="61" fill="#2563eb" font-size="9" letter-spacing="3">ADMINISTRATION PLANE</text>
+
+  <!-- Claude Code -->
+  <rect x="30" y="70" width="155" height="115" rx="6" fill="#0d0d2b" stroke="#7c3aed" stroke-width="1.5"/>
+  <text x="107" y="91" text-anchor="middle" fill="#a78bfa" font-size="11" font-weight="bold">CLAUDE CODE</text>
+  <line x1="42" y1="97" x2="173" y2="97" stroke="#3b2d6b" stroke-width="0.8"/>
+  <text x="107" y="112" text-anchor="middle" fill="#6d5fa8" font-size="9">MCP Client</text>
+  <text x="107" y="128" text-anchor="middle" fill="#4c4480" font-size="9">claude mcp add</text>
+  <text x="107" y="143" text-anchor="middle" fill="#4c4480" font-size="9">cloudflare-admin</text>
+  <text x="107" y="159" text-anchor="middle" fill="#4c4480" font-size="9">--transport http</text>
+  <text x="107" y="174" text-anchor="middle" fill="#4c4480" font-size="9">--header Bearer ···</text>
+
+  <!-- Arrow: Claude → MCP Server -->
+  <line x1="185" y1="127" x2="248" y2="127" stroke="#475569" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="216" y="120" text-anchor="middle" fill="#334155" font-size="8">HTTP :3000</text>
+  <text x="216" y="131" text-anchor="middle" fill="#334155" font-size="8">Bearer Token</text>
+
+  <!-- MCP Server -->
+  <rect x="251" y="55" width="225" height="200" rx="6" fill="#050f1f" stroke="#1d4ed8" stroke-width="1.5"/>
+  <text x="363" y="75" text-anchor="middle" fill="#60a5fa" font-size="11" font-weight="bold">MCP SERVER</text>
+  <text x="363" y="89" text-anchor="middle" fill="#1e3a6b" font-size="8">Docker · node:20-alpine</text>
+  <line x1="263" y1="95" x2="464" y2="95" stroke="#1e3a5f" stroke-width="0.8"/>
+
+  <rect x="264" y="103" width="200" height="22" rx="3" fill="#0a1e3d" stroke="#1e3a8a" stroke-width="1"/>
+  <text x="364" y="118" text-anchor="middle" fill="#93c5fd" font-size="9">Express · bearer auth · /health /mcp</text>
+
+  <rect x="264" y="131" width="200" height="22" rx="3" fill="#0a1e3d" stroke="#1e3a8a" stroke-width="1"/>
+  <text x="364" y="146" text-anchor="middle" fill="#93c5fd" font-size="9">MCP SDK · StreamableHTTP · Zod</text>
+
+  <rect x="264" y="159" width="94" height="22" rx="3" fill="#071428" stroke="#153060" stroke-width="1"/>
+  <text x="311" y="174" text-anchor="middle" fill="#7dd3fc" font-size="9">dns_* (5 tools)</text>
+
+  <rect x="370" y="159" width="94" height="22" rx="3" fill="#071428" stroke="#153060" stroke-width="1"/>
+  <text x="417" y="174" text-anchor="middle" fill="#7dd3fc" font-size="9">tunnel_* (4 tools)</text>
+
+  <rect x="264" y="187" width="200" height="22" rx="3" fill="#071428" stroke="#153060" stroke-width="1"/>
+  <text x="364" y="202" text-anchor="middle" fill="#7dd3fc" font-size="9">service_* (4 workflow tools)</text>
+
+  <rect x="264" y="215" width="200" height="22" rx="3" fill="#0a1e3d" stroke="#1e3a8a" stroke-width="1"/>
+  <text x="364" y="230" text-anchor="middle" fill="#93c5fd" font-size="9">cloudflare-api.ts · fetch wrapper</text>
+
+  <!-- Arrow: MCP → CF API -->
+  <line x1="476" y1="155" x2="539" y2="155" stroke="#475569" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="507" y="148" text-anchor="middle" fill="#334155" font-size="8">HTTPS</text>
+  <text x="507" y="159" text-anchor="middle" fill="#334155" font-size="8">API v4</text>
+
+  <!-- Cloudflare API -->
+  <rect x="542" y="63" width="185" height="195" rx="6" fill="#150800" stroke="#ea580c" stroke-width="1.5"/>
+  <text x="634" y="82" text-anchor="middle" fill="#f97316" font-size="11" font-weight="bold">CLOUDFLARE API</text>
+  <text x="634" y="96" text-anchor="middle" fill="#7c2d00" font-size="8">api.cloudflare.com/client/v4</text>
+  <line x1="554" y1="102" x2="715" y2="102" stroke="#7c2d00" stroke-width="0.8"/>
+
+  <rect x="556" y="110" width="157" height="20" rx="3" fill="#1f0e00" stroke="#7c3007" stroke-width="1"/>
+  <text x="634" y="124" text-anchor="middle" fill="#fdba74" font-size="9">GET /zones · DNS records</text>
+
+  <rect x="556" y="136" width="157" height="20" rx="3" fill="#1f0e00" stroke="#7c3007" stroke-width="1"/>
+  <text x="634" y="150" text-anchor="middle" fill="#fdba74" font-size="9">PUT /cfd_tunnel/:id/configurations</text>
+
+  <rect x="556" y="162" width="157" height="20" rx="3" fill="#1f0e00" stroke="#7c3007" stroke-width="1"/>
+  <text x="634" y="176" text-anchor="middle" fill="#fdba74" font-size="9">POST /access/apps + policies</text>
+
+  <rect x="556" y="188" width="157" height="20" rx="3" fill="#1f0e00" stroke="#7c3007" stroke-width="1"/>
+  <text x="634" y="202" text-anchor="middle" fill="#fdba74" font-size="9">POST /zones/:id/dns_records</text>
+
+  <rect x="556" y="214" width="157" height="20" rx="3" fill="#1f0e00" stroke="#7c3007" stroke-width="1"/>
+  <text x="634" y="228" text-anchor="middle" fill="#fdba74" font-size="9">GET /cfd_tunnel · token</text>
+
+  <!-- Arrow CF API down to edge -->
+  <line x1="634" y1="258" x2="634" y2="294" stroke="#ea580c" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arr-orange)"/>
+  <text x="650" y="278" fill="#7c2d00" font-size="8">configures</text>
+
+  <!-- ═══════════════════════════════════════════════════ -->
+  <!-- SERVICE PLANE                                      -->
+  <!-- ═══════════════════════════════════════════════════ -->
+  <rect x="10" y="280" width="940" height="245" rx="6" fill="none" stroke="#14532d" stroke-width="1" stroke-dasharray="4,3"/>
+  <text x="22" y="295" fill="#16a34a" font-size="9" letter-spacing="3">SERVICE ACCESS PLANE  (result of admin configuration)</text>
+
+  <!-- End User -->
+  <rect x="30" y="307" width="155" height="100" rx="6" fill="#0a0f0a" stroke="#15803d" stroke-width="1.5"/>
+  <text x="107" y="327" text-anchor="middle" fill="#4ade80" font-size="11" font-weight="bold">END USER</text>
+  <line x1="42" y1="333" x2="173" y2="333" stroke="#14532d" stroke-width="0.8"/>
+  <text x="107" y="348" text-anchor="middle" fill="#2d6b2d" font-size="9">Browser</text>
+  <text x="107" y="364" text-anchor="middle" fill="#2d6b2d" font-size="9">SSH over browser</text>
+  <text x="107" y="380" text-anchor="middle" fill="#2d6b2d" font-size="9">or web UI access</text>
+  <text x="107" y="396" text-anchor="middle" fill="#2d6b2d" font-size="9">Google OAuth / OTP</text>
+
+  <!-- Arrow: User → CF Edge -->
+  <line x1="185" y1="357" x2="248" y2="357" stroke="#475569" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="216" y="350" text-anchor="middle" fill="#334155" font-size="8">HTTPS</text>
+
+  <!-- Cloudflare Edge -->
+  <rect x="251" y="298" width="225" height="215" rx="6" fill="#150800" stroke="#ea580c" stroke-width="1.5"/>
+  <text x="363" y="318" text-anchor="middle" fill="#f97316" font-size="11" font-weight="bold">CLOUDFLARE EDGE</text>
+  <text x="363" y="332" text-anchor="middle" fill="#7c2d00" font-size="8">Zero Trust · Access</text>
+  <line x1="263" y1="338" x2="464" y2="338" stroke="#7c2d00" stroke-width="0.8"/>
+
+  <rect x="264" y="346" width="200" height="22" rx="3" fill="#1f0e00" stroke="#7c3007" stroke-width="1"/>
+  <text x="364" y="361" text-anchor="middle" fill="#fdba74" font-size="9">Policy enforcement</text>
+
+  <rect x="264" y="374" width="94" height="22" rx="3" fill="#1f0e00" stroke="#7c3007" stroke-width="1"/>
+  <text x="311" y="389" text-anchor="middle" fill="#fdba74" font-size="9">Google OAuth</text>
+
+  <rect x="370" y="374" width="94" height="22" rx="3" fill="#1f0e00" stroke="#7c3007" stroke-width="1"/>
+  <text x="417" y="389" text-anchor="middle" fill="#fdba74" font-size="9">One-time PIN</text>
+
+  <rect x="264" y="402" width="200" height="22" rx="3" fill="#1f0e00" stroke="#7c3007" stroke-width="1"/>
+  <text x="364" y="417" text-anchor="middle" fill="#fdba74" font-size="9">SSH browser rendering</text>
+
+  <rect x="264" y="430" width="200" height="22" rx="3" fill="#1f0e00" stroke="#7c3007" stroke-width="1"/>
+  <text x="364" y="445" text-anchor="middle" fill="#fdba74" font-size="9">CNAME → tunnel routing</text>
+
+  <rect x="264" y="458" width="200" height="22" rx="3" fill="#1f0e00" stroke="#7c3007" stroke-width="1"/>
+  <text x="364" y="473" text-anchor="middle" fill="#fdba74" font-size="9">*.cleverbits.net.au</text>
+
+  <!-- Arrow: CF Edge → Home Network (dashed tunnel) -->
+  <line x1="476" y1="390" x2="539" y2="390" stroke="#475569" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#arr)"/>
+  <text x="507" y="381" text-anchor="middle" fill="#334155" font-size="8">cloudflared</text>
+  <text x="507" y="392" text-anchor="middle" fill="#334155" font-size="8">tunnel</text>
+
+  <!-- Home Network -->
+  <rect x="542" y="298" width="395" height="215" rx="6" fill="#050f05" stroke="#15803d" stroke-width="1.5"/>
+  <text x="739" y="318" text-anchor="middle" fill="#4ade80" font-size="11" font-weight="bold">HOME NETWORK</text>
+  <text x="739" y="332" text-anchor="middle" fill="#14532d" font-size="8">private subnet · 192.168.x.x · not internet-exposed</text>
+  <line x1="554" y1="338" x2="925" y2="338" stroke="#14532d" stroke-width="0.8"/>
+
+  <!-- cloudflared -->
+  <rect x="556" y="346" width="165" height="60" rx="4" fill="#0a1f0a" stroke="#166534" stroke-width="1.2"/>
+  <text x="638" y="364" text-anchor="middle" fill="#86efac" font-size="9" font-weight="bold">cloudflared</text>
+  <text x="638" y="380" text-anchor="middle" fill="#2d6b2d" font-size="8">outbound connector</text>
+  <text x="638" y="394" text-anchor="middle" fill="#2d6b2d" font-size="8">remote config (dashboard)</text>
+
+  <!-- Services -->
+  <rect x="735" y="346" width="185" height="150" rx="4" fill="#0a1f0a" stroke="#166534" stroke-width="1.2"/>
+  <text x="827" y="364" text-anchor="middle" fill="#86efac" font-size="9" font-weight="bold">PRIVATE SERVICES</text>
+  <line x1="747" y1="370" x2="908" y2="370" stroke="#14532d" stroke-width="0.6"/>
+  <text x="827" y="386" text-anchor="middle" fill="#4ade80" font-size="8">ssh://host:22</text>
+  <text x="827" y="402" text-anchor="middle" fill="#4ade80" font-size="8">https://proxmox:8006</text>
+  <text x="827" y="418" text-anchor="middle" fill="#4ade80" font-size="8">http://homeassistant:8123</text>
+  <text x="827" y="434" text-anchor="middle" fill="#4ade80" font-size="8">http://grafana:3000</text>
+  <text x="827" y="450" text-anchor="middle" fill="#4ade80" font-size="8">http://portainer:9000</text>
+  <text x="827" y="470" text-anchor="middle" fill="#2d6b2d" font-size="8">+ any TCP/HTTP service</text>
+  <text x="827" y="485" text-anchor="middle" fill="#2d6b2d" font-size="8">on the local network</text>
+
+  <!-- Arrow: cloudflared → Services -->
+  <line x1="721" y1="376" x2="733" y2="376" stroke="#16a34a" stroke-width="1.2" marker-end="url(#arr-green)"/>
+
+  <!-- Footer -->
+  <line x1="40" y1="523" x2="920" y2="523" stroke="#0e2040" stroke-width="1"/>
+  <text x="480" y="535" text-anchor="middle" fill="#1e3a5f" font-size="8" letter-spacing="1">github.com/andrewkriley/cloudflare-dns-cloudflared-mcp</text>
+</svg>

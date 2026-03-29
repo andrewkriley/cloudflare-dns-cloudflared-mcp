@@ -1,5 +1,7 @@
 # cloudflare-dns-cloudflared-mcp
 
+![Architecture](docs/architecture.svg)
+
 Self-hosted MCP server for administering **Cloudflare DNS** and **cloudflared tunnel** services — expose SSH hosts, web UIs, and other services on your home network through Cloudflare Tunnels with Google OAuth access control.
 
 Runs as a Docker container on your own infrastructure. Connects to Claude Code or any MCP-compatible client via bearer-token-authenticated HTTP.
@@ -78,7 +80,7 @@ Edit `.env` and fill in:
 
 | Variable | Description |
 |----------|-------------|
-| `CF_API_TOKEN` | Cloudflare API token with DNS Edit + Zero Trust Edit |
+| `CF_API_TOKEN` | Cloudflare API token (see permissions below) |
 | `CF_ACCOUNT_ID` | Your Cloudflare account ID |
 | `MCP_BEARER_TOKEN` | Shared secret for MCP client auth — generate with `openssl rand -hex 32` |
 
@@ -121,7 +123,7 @@ Claude will call `dns_list_zones`, `tunnel_list`, then `service_expose_web` to w
 
 | Variable | Sensitivity | Purpose |
 |----------|-------------|---------|
-| `CF_API_TOKEN` | Secret | Cloudflare API token — DNS + Zero Trust permissions |
+| `CF_API_TOKEN` | Secret | Cloudflare API token — DNS + Tunnel + Zero Trust permissions |
 | `CF_ACCOUNT_ID` | Low | Cloudflare account identifier |
 | `MCP_BEARER_TOKEN` | Secret | Shared secret for MCP endpoint auth |
 | `MCP_PORT` | Low | HTTP port (default: 3000) |
@@ -130,12 +132,14 @@ All are loaded from `.env` via `docker compose`. The `.env` file is gitignored a
 
 ### Creating the Cloudflare API token
 
-Go to [dash.cloudflare.com/profile/api-tokens](https://dash.cloudflare.com/profile/api-tokens) and create a token with:
+Go to [dash.cloudflare.com/profile/api-tokens](https://dash.cloudflare.com/profile/api-tokens) and create a **custom token** with:
 
 | Scope | Permission |
 |-------|------------|
 | Zone > DNS | Edit |
+| Account > Cloudflare Tunnel | Edit |
 | Account > Zero Trust | Edit |
+| Zone > Zone | Read |
 
 Set a **90-day expiry** at creation time.
 
@@ -175,13 +179,14 @@ cp .env.example .env
 npm run dev
 ```
 
-### Build and type-check
+### Build and test
 
 ```bash
-npm run build       # compile TypeScript
-npm run typecheck   # type-check without emitting
-npm run lint        # ESLint
-npm test            # Vitest unit tests
+npm run build          # compile TypeScript
+npm run typecheck      # type-check without emitting
+npm run lint           # ESLint
+npm test               # unit tests (mocked, no credentials needed)
+npm run test:integration  # integration tests (requires env vars — runs in CI)
 ```
 
 ### Docker commands
@@ -205,11 +210,15 @@ Every push and pull request runs:
 | Secret scanning | Gitleaks | Detects accidentally committed tokens |
 | TypeScript check | `tsc --noEmit` | Strict compile-time correctness |
 | ESLint | `eslint` | Code quality and style |
+| Unit tests | Vitest | 16 mocked tests — workflow tool logic |
 | Dependency audit | `npm audit --audit-level=high` | Flags high/critical vulnerabilities |
 | Docker build | `docker/build-push-action` | Verifies image builds successfully |
+| Tunnel integration tests | Vitest + real cloudflared | Full lifecycle against a real ephemeral tunnel |
+
+All 7 checks are required for a PR to merge to `main`.
 
 ---
 
 ## Contributing
 
-`main` is protected — all changes via PR from `dev`. CI must pass and 1 approval required before merge. Direct pushes to `main` are blocked.
+`main` is protected — all changes via PR from `dev`. CI must pass before merge. Direct pushes to `main` are blocked.
