@@ -250,6 +250,7 @@ describe('exposeWebService', () => {
       service_name: 'Proxmox',
       allowed_emails: ['user@gmail.com'],
       allow_otp: false,
+      no_tls_verify: false,
     });
 
     const hostname = `proxmox.${ZONE_NAME}`;
@@ -305,6 +306,7 @@ describe('exposeWebService', () => {
       service_name: 'Home Assistant',
       allowed_emails: ['user@gmail.com'],
       allow_otp: false,
+      no_tls_verify: false,
     });
 
     expect(api.putTunnelConfig).toHaveBeenCalledWith(TOKEN, ACCOUNT_ID, TUNNEL_ID,
@@ -336,6 +338,7 @@ describe('exposeWebService', () => {
       service_name: 'Grafana',
       allowed_emails: ['user@gmail.com'],
       allow_otp: true,
+      no_tls_verify: false,
     });
 
     expect(api.createAccessPolicy).toHaveBeenCalledWith(TOKEN, ACCOUNT_ID, 'app-1',
@@ -343,6 +346,42 @@ describe('exposeWebService', () => {
         include: expect.arrayContaining([
           { auth_method: { auth_method: 'otp' } },
         ]),
+      })
+    );
+  });
+
+  it('sets noTLSVerify on ingress rule when no_tls_verify is true', async () => {
+    vi.mocked(api.getZone).mockResolvedValue({ name: ZONE_NAME });
+    vi.mocked(api.getTunnelConfig).mockResolvedValue(EMPTY_TUNNEL_CONFIG);
+    vi.mocked(api.putTunnelConfig).mockResolvedValue({});
+    vi.mocked(api.createDnsRecord).mockResolvedValue({ id: 'dns-1' });
+    vi.mocked(api.createAccessApplication).mockResolvedValue({ id: 'app-1' });
+    vi.mocked(api.createAccessPolicy).mockResolvedValue({ id: 'policy-1' });
+
+    await exposeWebService(TOKEN, ACCOUNT_ID, {
+      tunnel_id: TUNNEL_ID,
+      zone_id: ZONE_ID,
+      subdomain: 'myservice',
+      backend_host: '192.168.1.1',
+      backend_port: 443,
+      backend_protocol: 'https',
+      service_name: 'My Service',
+      allowed_emails: ['user@gmail.com'],
+      allow_otp: false,
+      no_tls_verify: true,
+    });
+
+    expect(api.putTunnelConfig).toHaveBeenCalledWith(TOKEN, ACCOUNT_ID, TUNNEL_ID,
+      expect.objectContaining({
+        config: expect.objectContaining({
+          ingress: expect.arrayContaining([
+            {
+              hostname: `myservice.${ZONE_NAME}`,
+              service: 'https://192.168.1.1:443',
+              originRequest: { noTLSVerify: true },
+            },
+          ]),
+        }),
       })
     );
   });

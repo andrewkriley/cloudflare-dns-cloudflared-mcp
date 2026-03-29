@@ -147,6 +147,7 @@ export function createServer(token: string, accountId: string): McpServer {
       service_name: z.string().describe("Friendly display name for the Access application, e.g. 'Proxmox'"),
       allowed_emails: z.array(z.string().email()).min(1).describe("Google account emails permitted to access"),
       allow_otp: z.boolean().default(false).describe("Also allow one-time PIN access for non-Google email addresses"),
+      no_tls_verify: z.boolean().default(false).describe("Disable TLS certificate verification for the backend (required for self-signed certs, e.g. Proxmox)"),
     },
     async (params) => ok(await exposeWebService(token, accountId, params))
   );
