@@ -1,5 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
+import packageJson from "../package.json" with { type: "json" };
 import {
   listZones,
   listDnsRecords,
@@ -23,7 +24,7 @@ function ok(data: unknown): { content: [{ type: "text"; text: string }] } {
 }
 
 export function createServer(token: string, accountId: string): McpServer {
-  const server = new McpServer({ name: "cloudflare-admin", version: "3.0.0" });
+  const server = new McpServer({ name: "cloudflare-admin", version: packageJson.version });
 
   // ── DNS ───────────────────────────────────────────────────────────────────
 
