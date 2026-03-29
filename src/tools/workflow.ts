@@ -127,7 +127,7 @@ export async function exposeSshService(
   const app = (await createAccessApplication(token, accountId, {
     name: hostname,
     domain: hostname,
-    type: "self_hosted",
+    type: "ssh",
     session_duration: "24h",
   })) as { id: string };
 
