@@ -130,6 +130,7 @@ export function createServer(token: string, accountId: string): McpServer {
       backend_port: z.number().int().min(1).max(65535).default(22).describe("SSH port (default 22)"),
       allowed_emails: z.array(z.string().email()).min(1).describe("Google account emails permitted to access"),
       allow_otp: z.boolean().default(false).describe("Also allow one-time PIN access for non-Google email addresses"),
+      ssh_username: z.string().describe("Local username on the SSH host that Cloudflare short-lived certs should log in as, e.g. 'admin'"),
     },
     async (params) => ok(await exposeSshService(token, accountId, params))
   );

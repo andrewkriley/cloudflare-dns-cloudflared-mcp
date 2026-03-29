@@ -97,6 +97,7 @@ describe.skipIf(!allVarsPresent)('integration: workflow tools', () => {
         backend_port:   22,
         allowed_emails: ['ci-test@example.com'],
         allow_otp:      false,
+        ssh_username:   'admin',
       });
       created.ssh = true;
 
