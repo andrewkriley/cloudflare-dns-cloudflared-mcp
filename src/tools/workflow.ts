@@ -12,7 +12,6 @@ import {
   createAccessPolicy,
   deleteAccessPolicy,
   listTunnels,
-  getAccessSshCa,
 } from "../cloudflare-api.js";
 
 interface IngressRule {
@@ -136,22 +135,7 @@ export async function exposeSshService(
     include: buildPolicyInclude(allowed_emails, allow_otp),
   });
 
-  const ca = (await getAccessSshCa(token, accountId)) as { public_key: string };
-
-  return {
-    hostname,
-    app_id: app.id,
-    ssh_ca_public_key: ca.public_key,
-    setup_instructions: [
-      `1. Save the CA public key on the SSH host:`,
-      `   echo '${ca.public_key}' | sudo tee /etc/ssh/cloudflare_ca.pub`,
-      `2. Add to /etc/ssh/sshd_config:`,
-      `   TrustedUserCAKeys /etc/ssh/cloudflare_ca.pub`,
-      `3. Restart sshd:`,
-      `   sudo systemctl restart sshd`,
-      `4. Access via browser at https://${hostname} — Cloudflare issues a short-lived cert after login.`,
-    ].join("\n"),
-  };
+  return { hostname, app_id: app.id };
 }
 
 // ── expose_web_service ────────────────────────────────────────────────────────
