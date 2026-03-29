@@ -217,6 +217,8 @@ Every push and pull request runs:
 
 All 7 checks are required for a PR to merge to `main`.
 
+On merge to `main` a separate **Release** workflow runs `release-please` to open/update the Release PR and, when that PR is merged, publishes a versioned Docker image to GHCR.
+
 ---
 
 ## Known limitations
@@ -256,6 +258,41 @@ docker run -d --restart unless-stopped \
 ```
 
 Then expose via `service_expose_web` with `backend_port: 3000, backend_protocol: http`. Cloudflare Access gates access as normal.
+
+---
+
+## Versioning & Releases
+
+This project follows [Semantic Versioning](https://semver.org/) and uses [Conventional Commits](https://www.conventionalcommits.org/) to drive automated releases.
+
+### How it works
+
+1. Commit messages on the `dev` branch use the Conventional Commits format:
+   - `fix: …` → patch release (e.g. `3.0.0` → `3.0.1`)
+   - `feat: …` → minor release (e.g. `3.0.0` → `3.1.0`)
+   - `feat!: …` or `BREAKING CHANGE:` footer → major release (e.g. `3.0.0` → `4.0.0`)
+2. When a PR from `dev` is merged to `main`, [release-please](https://github.com/googleapis/release-please) automatically opens (or updates) a **Release PR** that:
+   - Bumps the version in `package.json`
+   - Updates `CHANGELOG.md` with a summary of all changes since the last release
+3. Merging the Release PR into `main` triggers:
+   - A new GitHub Release with auto-generated release notes
+   - A versioned Docker image pushed to [GitHub Container Registry](https://ghcr.io) (`ghcr.io/andrewkriley/cloudflare-dns-cloudflared-mcp`)
+
+### Pulling a specific release
+
+```bash
+docker pull ghcr.io/andrewkriley/cloudflare-dns-cloudflared-mcp:3.0.0
+# or always latest:
+docker pull ghcr.io/andrewkriley/cloudflare-dns-cloudflared-mcp:latest
+```
+
+### Commit message examples
+
+```
+feat: add dns_import_records tool for bulk zone import
+fix: handle empty ingress array in getTunnelConfig
+feat!: remove gateway tools — breaking change for v4
+```
 
 ---
 
