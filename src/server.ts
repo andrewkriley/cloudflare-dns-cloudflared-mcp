@@ -6,26 +6,24 @@ import {
   createDnsRecord,
   updateDnsRecord,
   deleteDnsRecord,
-  listAccessApplications,
-  createAccessApplication,
-  deleteAccessApplication,
-  listAccessPolicies,
-  listGatewayRules,
-  createGatewayRule,
-  deleteGatewayRule,
-  listGatewayLists,
   listTunnels,
   getTunnel,
   getTunnelToken,
   listTunnelConnections,
 } from "./cloudflare-api.js";
+import {
+  exposeSshService,
+  exposeWebService,
+  removeService,
+  listServices,
+} from "./tools/workflow.js";
 
 function ok(data: unknown): { content: [{ type: "text"; text: string }] } {
   return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
 }
 
 export function createServer(token: string, accountId: string): McpServer {
-  const server = new McpServer({ name: "cloudflare-admin", version: "2.0.0" });
+  const server = new McpServer({ name: "cloudflare-admin", version: "3.0.0" });
 
   // ── DNS ───────────────────────────────────────────────────────────────────
 
@@ -82,109 +80,86 @@ export function createServer(token: string, accountId: string): McpServer {
     async ({ zone_id, record_id }) => ok(await deleteDnsRecord(token, zone_id, record_id))
   );
 
-  // ── Zero Trust — Access ───────────────────────────────────────────────────
+  // ── Tunnels ───────────────────────────────────────────────────────────────
 
   server.tool(
-    "zt_list_access_apps",
-    "List all Zero Trust Access applications",
-    {},
-    async () => ok(await listAccessApplications(token, accountId))
-  );
-
-  server.tool(
-    "zt_create_access_app",
-    "Create a Zero Trust Access application",
-    {
-      name: z.string().describe("Display name"),
-      domain: z.string().describe("Protected domain, e.g. app.example.com"),
-      type: z.enum(["self_hosted", "saas", "ssh", "vnc", "bookmark"]).optional().default("self_hosted"),
-      session_duration: z.string().optional().default("24h").describe("e.g. 24h, 7d"),
-      auto_redirect_to_identity: z.boolean().optional().default(false),
-    },
-    async (body) => ok(await createAccessApplication(token, accountId, body))
-  );
-
-  server.tool(
-    "zt_delete_access_app",
-    "Delete a Zero Trust Access application",
-    { app_id: z.string() },
-    async ({ app_id }) => ok(await deleteAccessApplication(token, accountId, app_id))
-  );
-
-  server.tool(
-    "zt_list_access_policies",
-    "List policies attached to an Access application",
-    { app_id: z.string() },
-    async ({ app_id }) => ok(await listAccessPolicies(token, accountId, app_id))
-  );
-
-  // ── Zero Trust — Gateway ──────────────────────────────────────────────────
-
-  server.tool(
-    "zt_list_gateway_rules",
-    "List all Zero Trust Gateway firewall rules (DNS, HTTP, Network)",
-    {},
-    async () => ok(await listGatewayRules(token, accountId))
-  );
-
-  server.tool(
-    "zt_create_gateway_rule",
-    "Create a Zero Trust Gateway rule",
-    {
-      name: z.string(),
-      action: z.enum(["allow", "block", "audit", "redirect", "l4_override", "isolate", "off"]),
-      filters: z.array(z.enum(["http", "dns", "l4", "egress"])).describe("Policy type(s)"),
-      traffic: z.string().optional().describe("Wirefilter expression, e.g. 'dns.fqdn == \"malware.com\"'"),
-      identity: z.string().optional().describe("Identity selector expression"),
-      precedence: z.number().int().min(0).optional(),
-      enabled: z.boolean().optional().default(true),
-      description: z.string().optional(),
-    },
-    async (body) => ok(await createGatewayRule(token, accountId, body))
-  );
-
-  server.tool(
-    "zt_delete_gateway_rule",
-    "Delete a Zero Trust Gateway rule",
-    { rule_id: z.string() },
-    async ({ rule_id }) => ok(await deleteGatewayRule(token, accountId, rule_id))
-  );
-
-  server.tool(
-    "zt_list_gateway_lists",
-    "List Zero Trust Gateway lists (domain/IP allow-block lists)",
-    {},
-    async () => ok(await listGatewayLists(token, accountId))
-  );
-
-  // ── Zero Trust — Tunnels ──────────────────────────────────────────────────
-
-  server.tool(
-    "zt_list_tunnels",
+    "tunnel_list",
     "List all Cloudflare Tunnels",
     {},
     async () => ok(await listTunnels(token, accountId))
   );
 
   server.tool(
-    "zt_get_tunnel",
+    "tunnel_get",
     "Get details for a specific Cloudflare Tunnel",
     { tunnel_id: z.string() },
     async ({ tunnel_id }) => ok(await getTunnel(token, accountId, tunnel_id))
   );
 
   server.tool(
-    "zt_get_tunnel_token",
+    "tunnel_get_token",
     "Get the connector token for a Cloudflare Tunnel (used to run cloudflared)",
     { tunnel_id: z.string() },
     async ({ tunnel_id }) => ok(await getTunnelToken(token, accountId, tunnel_id))
   );
 
   server.tool(
-    "zt_list_tunnel_connections",
+    "tunnel_list_connections",
     "List active connections for a Cloudflare Tunnel",
     { tunnel_id: z.string() },
     async ({ tunnel_id }) => ok(await listTunnelConnections(token, accountId, tunnel_id))
+  );
+
+  // ── Tunnel services (workflow) ────────────────────────────────────────────
+
+  server.tool(
+    "service_list",
+    "List all services exposed through Cloudflare Tunnels, including their DNS hostname, backend, and Access app",
+    {},
+    async () => ok(await listServices(token, accountId))
+  );
+
+  server.tool(
+    "service_expose_ssh",
+    "Expose an SSH service through a Cloudflare Tunnel with browser-based access. Creates a tunnel ingress rule, DNS CNAME, and Cloudflare Access application with Google auth and optional OTP.",
+    {
+      tunnel_id: z.string().describe("Tunnel ID from tunnel_list"),
+      zone_id: z.string().describe("Zone ID from dns_list_zones — determines the domain used"),
+      subdomain: z.string().describe("Subdomain label, e.g. 'homeserver' → homeserver.yourdomain.com"),
+      backend_host: z.string().describe("Private IP or hostname of the SSH target, e.g. 192.168.1.10"),
+      backend_port: z.number().int().min(1).max(65535).default(22).describe("SSH port (default 22)"),
+      allowed_emails: z.array(z.string().email()).min(1).describe("Google account emails permitted to access"),
+      allow_otp: z.boolean().default(false).describe("Also allow one-time PIN access for non-Google email addresses"),
+    },
+    async (params) => ok(await exposeSshService(token, accountId, params))
+  );
+
+  server.tool(
+    "service_expose_web",
+    "Expose a web UI through a Cloudflare Tunnel with access control. Creates a tunnel ingress rule, DNS CNAME, and Cloudflare Access application with Google auth and optional OTP.",
+    {
+      tunnel_id: z.string().describe("Tunnel ID from tunnel_list"),
+      zone_id: z.string().describe("Zone ID from dns_list_zones — determines the domain used"),
+      subdomain: z.string().describe("Subdomain label, e.g. 'proxmox' → proxmox.yourdomain.com"),
+      backend_host: z.string().describe("Private IP or hostname of the web service"),
+      backend_port: z.number().int().min(1).max(65535).describe("Port the service listens on"),
+      backend_protocol: z.enum(["http", "https"]).describe("Protocol the backend service uses"),
+      service_name: z.string().describe("Friendly display name for the Access application, e.g. 'Proxmox'"),
+      allowed_emails: z.array(z.string().email()).min(1).describe("Google account emails permitted to access"),
+      allow_otp: z.boolean().default(false).describe("Also allow one-time PIN access for non-Google email addresses"),
+    },
+    async (params) => ok(await exposeWebService(token, accountId, params))
+  );
+
+  server.tool(
+    "service_remove",
+    "Remove a service exposed through a Cloudflare Tunnel. Deletes the tunnel ingress rule, DNS record, Access policies, and Access application for the given hostname.",
+    {
+      hostname: z.string().describe("Full hostname of the service to remove, e.g. homeserver.example.com"),
+      tunnel_id: z.string().describe("Tunnel ID the service is routed through"),
+      zone_id: z.string().describe("Zone ID the DNS record lives in"),
+    },
+    async (params) => ok(await removeService(token, accountId, params))
   );
 
   return server;
