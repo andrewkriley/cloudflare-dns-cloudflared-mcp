@@ -112,6 +112,7 @@ export async function createAccessApplication(
     session_duration?: string;
     allowed_idps?: string[];
     auto_redirect_to_identity?: boolean;
+    enable_binding_cookie?: boolean;
   }
 ): Promise<unknown> {
   return cfFetch(token, `/accounts/${accountId}/access/apps`, {
@@ -191,12 +192,15 @@ export async function getOrCreateAccessSshCa(
   token: string,
   accountId: string
 ): Promise<unknown> {
-  try {
-    return await cfFetch(token, `/accounts/${accountId}/access/gateway_ca`);
-  } catch {
-    // CA doesn't exist yet — create it
+  const res = await fetch(`${CF_API}/accounts/${accountId}/access/gateway_ca`, {
+    headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+  });
+  const json = (await res.json()) as { success: boolean; errors: { code: number }[]; result: unknown };
+  if (json.success) return json.result;
+  if (json.errors.some((e) => e.code === 404 || e.code === 10009)) {
     return cfFetch(token, `/accounts/${accountId}/access/gateway_ca`, { method: "POST" });
   }
+  throw new Error(`Cloudflare API error: ${JSON.stringify(json.errors)}`);
 }
 
 // ── Tunnels ───────────────────────────────────────────────────────────────────
