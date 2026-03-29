@@ -22,3 +22,14 @@ Releases are generated automatically from [Conventional Commits](https://www.con
 - Integration test suite against a real ephemeral cloudflared tunnel
 
 [3.0.0]: https://github.com/andrewkriley/cloudflare-dns-cloudflared-mcp/releases/tag/v3.0.0
+- Initial public release.
+- 13 MCP tools across three namespaces: `dns_*`, `tunnel_*`, `service_*`.
+- `service_expose_ssh` — exposes an SSH service through a Cloudflare Tunnel with browser access and Google OAuth + OTP.
+- `service_expose_web` — exposes a web UI through a Cloudflare Tunnel with access control.
+- `service_remove` — tears down a previously exposed service.
+- `service_list` — lists all services currently exposed through Cloudflare Tunnels.
+- Bearer-token-authenticated Express HTTP server.
+- Multi-stage Docker image (`node:20-alpine`, non-root user).
+- Unit tests (17) and integration tests (6).
+- `GET /health` endpoint now returns `{ "status": "ok", "version": "…" }`.
+- Version sourced from `package.json` — no more hardcoded version strings in source code.

@@ -2,6 +2,7 @@ import { randomUUID } from "crypto";
 import express from "express";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { createServer } from "./server.js";
+import packageJson from "../package.json" with { type: "json" };
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
@@ -40,7 +41,7 @@ app.use(express.json());
 
 // Health check — no auth required, no sensitive info exposed
 app.get("/health", (_req, res) => {
-  res.json({ status: "ok" });
+  res.json({ status: "ok", version: packageJson.version });
 });
 
 // MCP endpoint — bearer token required
