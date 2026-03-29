@@ -17,6 +17,7 @@ import {
 interface IngressRule {
   hostname?: string;
   service: string;
+  originRequest?: { noTLSVerify: boolean };
 }
 
 interface TunnelConfig {
@@ -149,6 +150,7 @@ export interface ExposeWebParams {
   service_name: string;
   allowed_emails: string[];
   allow_otp: boolean;
+  no_tls_verify: boolean;
 }
 
 export async function exposeWebService(
@@ -156,16 +158,18 @@ export async function exposeWebService(
   accountId: string,
   params: ExposeWebParams
 ): Promise<unknown> {
-  const { tunnel_id, zone_id, subdomain, backend_host, backend_port, backend_protocol, service_name, allowed_emails, allow_otp } = params;
+  const { tunnel_id, zone_id, subdomain, backend_host, backend_port, backend_protocol, service_name, allowed_emails, allow_otp, no_tls_verify } = params;
 
   const zone = (await getZone(token, zone_id)) as { name: string };
   const hostname = `${subdomain}.${zone.name}`;
 
   const currentConfig = (await getTunnelConfig(token, accountId, tunnel_id)) as TunnelConfig;
-  const updatedConfig = insertIngressRule(currentConfig, {
+  const ingressRule: IngressRule = {
     hostname,
     service: `${backend_protocol}://${backend_host}:${backend_port}`,
-  });
+    ...(no_tls_verify && { originRequest: { noTLSVerify: true } }),
+  };
+  const updatedConfig = insertIngressRule(currentConfig, ingressRule);
   await putTunnelConfig(token, accountId, tunnel_id, updatedConfig);
 
   await createDnsRecord(token, zone_id, {

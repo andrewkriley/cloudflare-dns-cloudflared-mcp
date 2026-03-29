@@ -139,6 +139,7 @@ describe.skipIf(!allVarsPresent)('integration: workflow tools', () => {
         service_name:     'CI Test Web',
         allowed_emails:   ['ci-test@example.com'],
         allow_otp:        false,
+        no_tls_verify:    false,
       });
       created.web = true;
 
