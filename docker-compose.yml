@@ -1,8 +1,8 @@
 services:
   mcp-server:
     build: .
-    image: cloudflare-dns-zt-mcp:latest
-    container_name: cloudflare-dns-zt-mcp
+    image: cloudflare-dns-cloudflared-mcp:latest
+    container_name: cloudflare-dns-cloudflared-mcp
     ports:
       - "${MCP_PORT:-3000}:3000"
     env_file:

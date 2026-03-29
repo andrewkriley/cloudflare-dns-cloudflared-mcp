@@ -87,6 +87,12 @@ export async function deleteDnsRecord(
   });
 }
 
+// ── Zones ─────────────────────────────────────────────────────────────────────
+
+export async function getZone(token: string, zoneId: string): Promise<unknown> {
+  return cfFetch(token, `/zones/${zoneId}`);
+}
+
 // ── Zero Trust — Access ───────────────────────────────────────────────────────
 
 export async function listAccessApplications(
@@ -132,54 +138,56 @@ export async function listAccessPolicies(
   return cfFetch(token, `/accounts/${accountId}/access/apps/${appId}/policies`);
 }
 
-// ── Zero Trust — Gateway ──────────────────────────────────────────────────────
-
-export async function listGatewayRules(
-  token: string,
-  accountId: string
-): Promise<unknown> {
-  return cfFetch(token, `/accounts/${accountId}/gateway/rules?per_page=100`);
-}
-
-export async function createGatewayRule(
+export async function createAccessPolicy(
   token: string,
   accountId: string,
+  appId: string,
   body: {
     name: string;
-    action: string;
-    filters: string[];
-    traffic?: string;
-    identity?: string;
-    device_posture?: string;
-    precedence?: number;
-    enabled?: boolean;
-    description?: string;
+    decision: string;
+    include: unknown[];
   }
 ): Promise<unknown> {
-  return cfFetch(token, `/accounts/${accountId}/gateway/rules`, {
+  return cfFetch(token, `/accounts/${accountId}/access/apps/${appId}/policies`, {
     method: "POST",
-    body: JSON.stringify({ enabled: true, ...body }),
+    body: JSON.stringify(body),
   });
 }
 
-export async function deleteGatewayRule(
+export async function deleteAccessPolicy(
   token: string,
   accountId: string,
-  ruleId: string
+  appId: string,
+  policyId: string
 ): Promise<unknown> {
-  return cfFetch(token, `/accounts/${accountId}/gateway/rules/${ruleId}`, {
+  return cfFetch(token, `/accounts/${accountId}/access/apps/${appId}/policies/${policyId}`, {
     method: "DELETE",
   });
 }
 
-export async function listGatewayLists(
+// ── Tunnel config ─────────────────────────────────────────────────────────────
+
+export async function getTunnelConfig(
   token: string,
-  accountId: string
+  accountId: string,
+  tunnelId: string
 ): Promise<unknown> {
-  return cfFetch(token, `/accounts/${accountId}/gateway/lists`);
+  return cfFetch(token, `/accounts/${accountId}/cfd_tunnel/${tunnelId}/configurations`);
 }
 
-// ── Zero Trust — Tunnels ──────────────────────────────────────────────────────
+export async function putTunnelConfig(
+  token: string,
+  accountId: string,
+  tunnelId: string,
+  body: unknown
+): Promise<unknown> {
+  return cfFetch(token, `/accounts/${accountId}/cfd_tunnel/${tunnelId}/configurations`, {
+    method: "PUT",
+    body: JSON.stringify(body),
+  });
+}
+
+// ── Tunnels ───────────────────────────────────────────────────────────────────
 
 export async function listTunnels(
   token: string,

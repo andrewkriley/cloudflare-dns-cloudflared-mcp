@@ -1,7 +1,7 @@
 # Gitleaks configuration
 # https://github.com/gitleaks/gitleaks
 
-title = "cloudflare-dns-zt-mcp — Gitleaks Config"
+title = "cloudflare-dns-cloudflared-mcp — Gitleaks Config"
 
 [allowlist]
   description = "Allowlisted false positives"

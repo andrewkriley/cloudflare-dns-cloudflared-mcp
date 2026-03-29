@@ -1,6 +1,8 @@
-# cloudflare-dns-zt-mcp
+# cloudflare-dns-cloudflared-mcp
 
-Self-hosted MCP server for administering **Cloudflare DNS records** and **Zero Trust** (Access, Gateway, Tunnels). Runs as a Docker container on your own infrastructure. Connects to Claude Code or any MCP-compatible client via bearer-token-authenticated HTTP.
+Self-hosted MCP server for administering **Cloudflare DNS** and **cloudflared tunnel** services — expose SSH hosts, web UIs, and other services on your home network through Cloudflare Tunnels with Google OAuth access control.
+
+Runs as a Docker container on your own infrastructure. Connects to Claude Code or any MCP-compatible client via bearer-token-authenticated HTTP.
 
 ---
 
@@ -16,32 +18,44 @@ Self-hosted MCP server for administering **Cloudflare DNS records** and **Zero T
 | `dns_update_record` | Update an existing DNS record |
 | `dns_delete_record` | Delete a DNS record |
 
-### Zero Trust — Access
+### Tunnels
 
 | Tool | Description |
 |------|-------------|
-| `zt_list_access_apps` | List Access applications |
-| `zt_create_access_app` | Create an Access application |
-| `zt_delete_access_app` | Delete an Access application |
-| `zt_list_access_policies` | List policies on an Access application |
+| `tunnel_list` | List all Cloudflare Tunnels |
+| `tunnel_get` | Get tunnel details |
+| `tunnel_get_token` | Get connector token for cloudflared |
+| `tunnel_list_connections` | List active tunnel connections |
 
-### Zero Trust — Gateway
-
-| Tool | Description |
-|------|-------------|
-| `zt_list_gateway_rules` | List Gateway firewall rules |
-| `zt_create_gateway_rule` | Create a Gateway rule (DNS, HTTP, Network) |
-| `zt_delete_gateway_rule` | Delete a Gateway rule |
-| `zt_list_gateway_lists` | List allow/block lists |
-
-### Zero Trust — Tunnels
+### Tunnel Services (workflow)
 
 | Tool | Description |
 |------|-------------|
-| `zt_list_tunnels` | List Cloudflare Tunnels |
-| `zt_get_tunnel` | Get tunnel details |
-| `zt_get_tunnel_token` | Get connector token for cloudflared |
-| `zt_list_tunnel_connections` | List active tunnel connections |
+| `service_list` | List all services exposed across all tunnels |
+| `service_expose_ssh` | Expose an SSH host through a tunnel with browser-based access |
+| `service_expose_web` | Expose a web UI through a tunnel with access control |
+| `service_remove` | Remove a service — tears down ingress, DNS, and Access app |
+
+#### What `service_expose_ssh` and `service_expose_web` do
+
+Each workflow tool wires up the full stack in one call:
+
+1. **Tunnel ingress rule** — maps the public hostname to the private backend service
+2. **DNS CNAME** — points `subdomain.yourdomain.com` → `[tunnel-id].cfargotunnel.com`
+3. **Cloudflare Access application** — gates who can reach the service
+4. **Access policy** — allows specific Google accounts, with optional one-time PIN (OTP) for non-Google emails
+
+---
+
+## Prerequisites
+
+### Cloudflare Tunnel
+
+You need a running `cloudflared` tunnel connected to your home network. Install cloudflared on your home server and connect it via the [Cloudflare Zero Trust dashboard](https://one.dash.cloudflare.com). The tunnel must show as **Online** before exposing services through it.
+
+### Google OAuth identity provider
+
+For Google-authenticated access, configure Google as an identity provider once in the Zero Trust dashboard under **Settings → Authentication**. This is a one-time manual setup — the MCP server manages per-service access policies, not the identity provider itself.
 
 ---
 
@@ -50,8 +64,8 @@ Self-hosted MCP server for administering **Cloudflare DNS records** and **Zero T
 ### 1. Clone
 
 ```bash
-git clone git@github.com:andrewkriley/cloudflare-dns-zt-mcp.git
-cd cloudflare-dns-zt-mcp
+git clone git@github.com:andrewkriley/cloudflare-dns-cloudflared-mcp.git
+cd cloudflare-dns-cloudflared-mcp
 ```
 
 ### 2. Configure
@@ -60,7 +74,7 @@ cd cloudflare-dns-zt-mcp
 cp .env.example .env
 ```
 
-Edit `.env` and fill in three values:
+Edit `.env` and fill in:
 
 | Variable | Description |
 |----------|-------------|
@@ -73,8 +87,6 @@ Edit `.env` and fill in three values:
 ```bash
 docker compose up -d
 ```
-
-The server starts at `http://localhost:3000/mcp`.
 
 Check it's healthy:
 ```bash
@@ -102,7 +114,12 @@ Add to `~/.claude/settings.json`:
 }
 ```
 
-Replace `YOUR_MCP_BEARER_TOKEN` with the value from your `.env`.
+### 5. Example usage
+
+Ask Claude:
+> "Expose my Proxmox server at 192.168.1.100:8006 as proxmox.yourdomain.com through my home tunnel. Allow access for user@gmail.com."
+
+Claude will call `dns_list_zones`, `tunnel_list`, then `service_expose_web` to wire everything up.
 
 ---
 
@@ -112,7 +129,7 @@ Replace `YOUR_MCP_BEARER_TOKEN` with the value from your `.env`.
 
 | Variable | Sensitivity | Purpose |
 |----------|-------------|---------|
-| `CF_API_TOKEN` | Secret | Cloudflare API admin token — DNS + ZT permissions |
+| `CF_API_TOKEN` | Secret | Cloudflare API token — DNS + Zero Trust permissions |
 | `CF_ACCOUNT_ID` | Low | Cloudflare account identifier |
 | `MCP_BEARER_TOKEN` | Secret | Shared secret for MCP endpoint auth |
 | `MCP_PORT` | Low | HTTP port (default: 3000) |
@@ -143,8 +160,6 @@ Set a **90-day expiry** at creation time.
 openssl rand -hex 32
 ```
 
-Update `MCP_BEARER_TOKEN` in `.env` and update your Claude Code `settings.json` to match.
-
 ### Security controls
 
 | Control | What it does |
@@ -173,15 +188,17 @@ npm run dev
 ```bash
 npm run build       # compile TypeScript
 npm run typecheck   # type-check without emitting
+npm run lint        # ESLint
+npm test            # Vitest unit tests
 ```
 
 ### Docker commands
 
 ```bash
-docker compose up -d          # start in background
-docker compose logs -f        # tail logs
-docker compose restart        # restart after .env change
-docker compose down           # stop and remove container
+docker compose up -d             # start in background
+docker compose logs -f           # tail logs
+docker compose restart           # restart after .env change
+docker compose down              # stop and remove container
 docker compose build --no-cache  # force rebuild image
 ```
 
@@ -195,6 +212,7 @@ Every push and pull request runs:
 |-------|------|---------|
 | Secret scanning | Gitleaks | Detects accidentally committed tokens |
 | TypeScript check | `tsc --noEmit` | Strict compile-time correctness |
+| ESLint | `eslint` | Code quality and style |
 | Dependency audit | `npm audit --audit-level=high` | Flags high/critical vulnerabilities |
 | Docker build | `docker/build-push-action` | Verifies image builds successfully |
 
