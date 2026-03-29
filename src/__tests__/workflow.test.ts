@@ -46,7 +46,7 @@ describe('exposeSshService', () => {
     vi.mocked(api.createDnsRecord).mockResolvedValue({ id: 'dns-1' });
     vi.mocked(api.createAccessApplication).mockResolvedValue({ id: 'app-1' });
     vi.mocked(api.createAccessPolicy).mockResolvedValue({ id: 'policy-1' });
-    vi.mocked(api.getOrCreateAccessSshCa).mockResolvedValue({ public_key: SSH_CA_PUBLIC_KEY });
+    vi.mocked(api.getAccessSshCa).mockResolvedValue({ public_key: SSH_CA_PUBLIC_KEY });
 
     await exposeSshService(TOKEN, ACCOUNT_ID, {
       tunnel_id: TUNNEL_ID,
@@ -107,7 +107,7 @@ describe('exposeSshService', () => {
     vi.mocked(api.createDnsRecord).mockResolvedValue({ id: 'dns-1' });
     vi.mocked(api.createAccessApplication).mockResolvedValue({ id: 'app-1' });
     vi.mocked(api.createAccessPolicy).mockResolvedValue({ id: 'policy-1' });
-    vi.mocked(api.getOrCreateAccessSshCa).mockResolvedValue({ public_key: SSH_CA_PUBLIC_KEY });
+    vi.mocked(api.getAccessSshCa).mockResolvedValue({ public_key: SSH_CA_PUBLIC_KEY });
 
     await exposeSshService(TOKEN, ACCOUNT_ID, {
       tunnel_id: TUNNEL_ID,
@@ -137,7 +137,7 @@ describe('exposeSshService', () => {
     vi.mocked(api.createDnsRecord).mockResolvedValue({ id: 'dns-1' });
     vi.mocked(api.createAccessApplication).mockResolvedValue({ id: 'app-1' });
     vi.mocked(api.createAccessPolicy).mockResolvedValue({ id: 'policy-1' });
-    vi.mocked(api.getOrCreateAccessSshCa).mockResolvedValue({ public_key: SSH_CA_PUBLIC_KEY });
+    vi.mocked(api.getAccessSshCa).mockResolvedValue({ public_key: SSH_CA_PUBLIC_KEY });
 
     await exposeSshService(TOKEN, ACCOUNT_ID, {
       tunnel_id: TUNNEL_ID,
@@ -166,7 +166,7 @@ describe('exposeSshService', () => {
     vi.mocked(api.createDnsRecord).mockResolvedValue({ id: 'dns-1' });
     vi.mocked(api.createAccessApplication).mockResolvedValue({ id: 'app-1' });
     vi.mocked(api.createAccessPolicy).mockResolvedValue({ id: 'policy-1' });
-    vi.mocked(api.getOrCreateAccessSshCa).mockResolvedValue({ public_key: SSH_CA_PUBLIC_KEY });
+    vi.mocked(api.getAccessSshCa).mockResolvedValue({ public_key: SSH_CA_PUBLIC_KEY });
 
     await exposeSshService(TOKEN, ACCOUNT_ID, {
       tunnel_id: TUNNEL_ID,
@@ -195,7 +195,7 @@ describe('exposeSshService', () => {
     vi.mocked(api.createDnsRecord).mockResolvedValue({ id: 'dns-1' });
     vi.mocked(api.createAccessApplication).mockResolvedValue({ id: 'app-1' });
     vi.mocked(api.createAccessPolicy).mockResolvedValue({ id: 'policy-1' });
-    vi.mocked(api.getOrCreateAccessSshCa).mockResolvedValue({ public_key: SSH_CA_PUBLIC_KEY });
+    vi.mocked(api.getAccessSshCa).mockResolvedValue({ public_key: SSH_CA_PUBLIC_KEY });
 
     await exposeSshService(TOKEN, ACCOUNT_ID, {
       tunnel_id: TUNNEL_ID,

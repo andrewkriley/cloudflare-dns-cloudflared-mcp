@@ -12,7 +12,7 @@ import {
   createAccessPolicy,
   deleteAccessPolicy,
   listTunnels,
-  getOrCreateAccessSshCa,
+  getAccessSshCa,
 } from "../cloudflare-api.js";
 
 interface IngressRule {
@@ -136,7 +136,7 @@ export async function exposeSshService(
     include: buildPolicyInclude(allowed_emails, allow_otp),
   });
 
-  const ca = (await getOrCreateAccessSshCa(token, accountId)) as { public_key: string };
+  const ca = (await getAccessSshCa(token, accountId)) as { public_key: string };
 
   return {
     hostname,
