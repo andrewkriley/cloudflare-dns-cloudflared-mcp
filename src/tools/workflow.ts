@@ -129,6 +129,7 @@ export async function exposeSshService(
     domain: hostname,
     type: "ssh",
     session_duration: "24h",
+    enable_binding_cookie: true,
   })) as { id: string };
 
   await createAccessPolicy(token, accountId, app.id, {

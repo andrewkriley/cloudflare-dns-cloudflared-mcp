@@ -91,6 +91,7 @@ describe('exposeSshService', () => {
       domain: hostname,
       type: 'ssh',
       session_duration: '24h',
+      enable_binding_cookie: true,
     });
 
     // 6. Create Access policy with allowed emails
