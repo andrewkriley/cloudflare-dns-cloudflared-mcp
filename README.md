@@ -219,6 +219,46 @@ All 7 checks are required for a PR to merge to `main`.
 
 ---
 
+## Known limitations
+
+### Browser-rendered SSH and short-lived certificates
+
+`service_expose_ssh` sets up the correct server-side configuration for Cloudflare short-lived SSH certificates (`TrustedUserCAKeys`, `AuthorizedPrincipalsFile`, SSH CA). However, **Cloudflare's browser-rendered SSH terminal uses libssh2 1.9.0**, which does not support OpenSSH certificate authentication. Certificate support was added in libssh2 1.11.0 (2023).
+
+**Effect:** When accessing an SSH service via the browser terminal, the browser prompts for a private key instead of logging in automatically with a short-lived cert.
+
+**Short-lived certs work correctly** for native SSH client access via the `cloudflared` ProxyCommand:
+
+```
+Host ssh.yourdomain.com
+  ProxyCommand cloudflared access ssh --hostname %h
+```
+
+**Workarounds for browser-only access** (e.g. when outbound SSH is blocked on the client network):
+
+**Option A — Enable password auth on the backend sshd.**
+The SSH port is not publicly exposed (only reachable via the tunnel, gated by Cloudflare Access). Password auth behind Google OAuth is an acceptable trade-off:
+
+```bash
+# On the SSH backend host
+sudo sed -i 's/^PasswordAuthentication no/PasswordAuthentication yes/' /etc/ssh/sshd_config
+sudo systemctl reload ssh
+```
+
+**Option B — Deploy a web terminal (wetty).**
+Run wetty on the backend host and expose it as a web service. The browser connects to wetty over HTTPS; wetty connects to sshd on localhost. No libssh2 limitation applies.
+
+```bash
+docker run -d --restart unless-stopped \
+  --name wetty \
+  -p 3000:3000 \
+  wettyoss/wetty --ssh-host localhost --ssh-port 22 --base /
+```
+
+Then expose via `service_expose_web` with `backend_port: 3000, backend_protocol: http`. Cloudflare Access gates access as normal.
+
+---
+
 ## Contributing
 
 `main` is protected — all changes via PR from `dev`. CI must pass before merge. Direct pushes to `main` are blocked.
