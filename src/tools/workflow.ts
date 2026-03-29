@@ -12,6 +12,7 @@ import {
   createAccessPolicy,
   deleteAccessPolicy,
   listTunnels,
+  getOrCreateAccessSshCa,
 } from "../cloudflare-api.js";
 
 interface IngressRule {
@@ -96,6 +97,7 @@ export interface ExposeSshParams {
   backend_port: number;
   allowed_emails: string[];
   allow_otp: boolean;
+  ssh_username: string;
 }
 
 export async function exposeSshService(
@@ -103,7 +105,7 @@ export async function exposeSshService(
   accountId: string,
   params: ExposeSshParams
 ): Promise<unknown> {
-  const { tunnel_id, zone_id, subdomain, backend_host, backend_port, allowed_emails, allow_otp } = params;
+  const { tunnel_id, zone_id, subdomain, backend_host, backend_port, allowed_emails, allow_otp, ssh_username } = params;
 
   const zone = (await getZone(token, zone_id)) as { name: string };
   const hostname = `${subdomain}.${zone.name}`;
@@ -135,7 +137,26 @@ export async function exposeSshService(
     include: buildPolicyInclude(allowed_emails, allow_otp),
   });
 
-  return { hostname, app_id: app.id };
+  const ca = (await getOrCreateAccessSshCa(token, accountId)) as { public_key: string };
+
+  return {
+    hostname,
+    app_id: app.id,
+    ssh_ca_public_key: ca.public_key,
+    setup_instructions: [
+      `1. Save the Cloudflare SSH CA public key on the host:`,
+      `   echo '${ca.public_key}' | sudo tee /etc/ssh/cloudflare_ca.pub`,
+      `2. Create the principals file for '${ssh_username}':`,
+      `   sudo mkdir -p /etc/ssh/principals`,
+      `   echo '${allowed_emails.join("\n")}' | sudo tee /etc/ssh/principals/${ssh_username}`,
+      `3. Add to /etc/ssh/sshd_config:`,
+      `   TrustedUserCAKeys /etc/ssh/cloudflare_ca.pub`,
+      `   AuthorizedPrincipalsFile /etc/ssh/principals/%u`,
+      `4. Restart sshd:`,
+      `   sudo systemctl restart sshd`,
+      `5. Access via browser at https://${hostname} — Cloudflare issues a short-lived cert and logs in as '${ssh_username}'.`,
+    ].join("\n"),
+  };
 }
 
 // ── expose_web_service ────────────────────────────────────────────────────────
