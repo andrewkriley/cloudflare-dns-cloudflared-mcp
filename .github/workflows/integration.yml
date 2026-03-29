@@ -50,7 +50,7 @@ jobs:
           CF_API_TOKEN_CI: ${{ secrets.CF_API_TOKEN_CI }}
           CF_TEST_ZONE: ${{ vars.CF_TEST_ZONE_ID }}
         run: |
-          # Accept either a domain name (e.g. cleverbits.net.au) or a zone ID (32-char hex)
+          # Accept either a domain name (e.g. example.com) or a zone ID (32-char hex)
           if echo "$CF_TEST_ZONE" | grep -qE '^[0-9a-f]{32}$'; then
             echo "CF_TEST_ZONE_ID=$CF_TEST_ZONE" >> "$GITHUB_ENV"
             echo "Zone is already an ID: $CF_TEST_ZONE"

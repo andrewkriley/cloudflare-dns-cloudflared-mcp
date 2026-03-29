@@ -138,7 +138,7 @@
   <text x="364" y="445" text-anchor="middle" fill="#fdba74" font-size="9">CNAME → tunnel routing</text>
 
   <rect x="264" y="458" width="200" height="22" rx="3" fill="#1f0e00" stroke="#7c3007" stroke-width="1"/>
-  <text x="364" y="473" text-anchor="middle" fill="#fdba74" font-size="9">*.cleverbits.net.au</text>
+  <text x="364" y="473" text-anchor="middle" fill="#fdba74" font-size="9">*.yourdomain.com</text>
 
   <!-- Arrow: CF Edge → Home Network (dashed tunnel) -->
   <line x1="476" y1="390" x2="539" y2="390" stroke="#475569" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#arr)"/>
