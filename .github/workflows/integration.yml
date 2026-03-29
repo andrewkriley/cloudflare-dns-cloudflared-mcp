@@ -1,0 +1,201 @@
+name: Integration Tests
+
+on:
+  pull_request:
+    branches: ["main"]
+  push:
+    branches: ["dev"]
+
+jobs:
+  integration:
+    name: Tunnel Integration Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install cloudflared
+        run: |
+          curl -fsSL --output cloudflared.deb \
+            https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
+          sudo dpkg -i cloudflared.deb
+          cloudflared --version
+
+      - name: Verify API token and resolve account ID
+        env:
+          CF_API_TOKEN_CI: ${{ secrets.CF_API_TOKEN_CI }}
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+        run: |
+          echo "Accounts visible to CF_API_TOKEN_CI:"
+          curl -sSL \
+            -H "Authorization: Bearer $CF_API_TOKEN_CI" \
+            "https://api.cloudflare.com/client/v4/accounts" \
+            | jq '[.result[] | {id, name}]'
+
+          echo ""
+          echo "CF_ACCOUNT_ID character count: ${#CF_ACCOUNT_ID}"
+
+      - name: Resolve test zone ID
+        env:
+          CF_API_TOKEN_CI: ${{ secrets.CF_API_TOKEN_CI }}
+          CF_TEST_ZONE: ${{ vars.CF_TEST_ZONE_ID }}
+        run: |
+          # Accept either a domain name (e.g. cleverbits.net.au) or a zone ID (32-char hex)
+          if echo "$CF_TEST_ZONE" | grep -qE '^[0-9a-f]{32}$'; then
+            echo "CF_TEST_ZONE_ID=$CF_TEST_ZONE" >> "$GITHUB_ENV"
+            echo "Zone is already an ID: $CF_TEST_ZONE"
+          else
+            echo "Resolving zone name '$CF_TEST_ZONE' to zone ID..."
+            ZONE_RESPONSE=$(curl -sSL \
+              -H "Authorization: Bearer $CF_API_TOKEN_CI" \
+              "https://api.cloudflare.com/client/v4/zones?name=$CF_TEST_ZONE")
+
+            ZONE_ID=$(echo "$ZONE_RESPONSE" | jq -r '.result[0].id // empty')
+
+            if [ -z "$ZONE_ID" ]; then
+              echo "Failed to resolve zone '$CF_TEST_ZONE':"
+              echo "$ZONE_RESPONSE" | jq '{success, errors}'
+              exit 1
+            fi
+
+            echo "Resolved: $CF_TEST_ZONE → $ZONE_ID"
+            echo "CF_TEST_ZONE_ID=$ZONE_ID" >> "$GITHUB_ENV"
+          fi
+
+      - name: Create ephemeral test tunnel
+        id: create_tunnel
+        env:
+          CF_API_TOKEN_CI: ${{ secrets.CF_API_TOKEN_CI }}
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+        run: |
+          TUNNEL_SECRET=$(openssl rand -base64 32)
+          TUNNEL_NAME="ci-test-${{ github.run_id }}"
+
+          RESPONSE=$(curl -sSL -X POST \
+            -H "Authorization: Bearer $CF_API_TOKEN_CI" \
+            -H "Content-Type: application/json" \
+            -d "{\"name\": \"$TUNNEL_NAME\", \"tunnel_secret\": \"$TUNNEL_SECRET\"}" \
+            "https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT_ID/cfd_tunnel")
+          echo "Tunnel create response: $RESPONSE"
+
+          TUNNEL_ID=$(echo "$RESPONSE" | jq -r '.result.id')
+
+          if [ -z "$TUNNEL_ID" ] || [ "$TUNNEL_ID" = "null" ]; then
+            echo "Failed to create tunnel:"
+            echo "$RESPONSE" | jq .
+            exit 1
+          fi
+
+          TOKEN_RESPONSE=$(curl -fsSL \
+            -H "Authorization: Bearer $CF_API_TOKEN_CI" \
+            "https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT_ID/cfd_tunnel/$TUNNEL_ID/token")
+
+          TUNNEL_TOKEN=$(echo "$TOKEN_RESPONSE" | jq -r '.result')
+
+          echo "tunnel_id=$TUNNEL_ID" >> "$GITHUB_OUTPUT"
+          echo "TUNNEL_TOKEN=$TUNNEL_TOKEN" >> "$GITHUB_ENV"
+          echo "CI_TUNNEL_ID=$TUNNEL_ID" >> "$GITHUB_ENV"
+          echo "Created tunnel: $TUNNEL_ID ($TUNNEL_NAME)"
+
+      - name: Start cloudflared
+        run: |
+          cloudflared tunnel run --token "$TUNNEL_TOKEN" &
+          echo "CLOUDFLARED_PID=$!" >> "$GITHUB_ENV"
+
+      - name: Wait for tunnel to become healthy
+        env:
+          CF_API_TOKEN_CI: ${{ secrets.CF_API_TOKEN_CI }}
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+        run: |
+          TUNNEL_ID="${{ steps.create_tunnel.outputs.tunnel_id }}"
+          echo "Polling tunnel $TUNNEL_ID for healthy connections..."
+
+          for i in $(seq 1 30); do
+            CONN_COUNT=$(curl -fsSL \
+              -H "Authorization: Bearer $CF_API_TOKEN_CI" \
+              "https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT_ID/cfd_tunnel/$TUNNEL_ID/connections" \
+              | jq '.result | length')
+
+            if [ "$CONN_COUNT" -gt "0" ]; then
+              echo "Tunnel healthy after $((i * 2))s ($CONN_COUNT connection(s))"
+              exit 0
+            fi
+
+            echo "  attempt $i/30 — no connections yet, waiting 2s..."
+            sleep 2
+          done
+
+          echo "Tunnel did not become healthy within 60s"
+          exit 1
+
+      - name: Run integration tests
+        env:
+          CF_API_TOKEN_CI: ${{ secrets.CF_API_TOKEN_CI }}
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          # CF_TEST_ZONE_ID is set by the Resolve test zone ID step
+        run: npm run test:integration
+
+      - name: Cleanup — stop cloudflared and delete tunnel
+        if: always()
+        env:
+          CF_API_TOKEN_CI: ${{ secrets.CF_API_TOKEN_CI }}
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          # CF_TEST_ZONE_ID is set by the Resolve test zone ID step
+        run: |
+          TUNNEL_ID="${{ steps.create_tunnel.outputs.tunnel_id }}"
+
+          # Stop cloudflared
+          if [ -n "$CLOUDFLARED_PID" ]; then
+            kill "$CLOUDFLARED_PID" 2>/dev/null || true
+            echo "Stopped cloudflared (pid $CLOUDFLARED_PID)"
+          fi
+
+          if [ -z "$TUNNEL_ID" ] || [ "$TUNNEL_ID" = "null" ]; then
+            echo "No tunnel ID — nothing to clean up"
+            exit 0
+          fi
+
+          # Remove any lingering CI DNS records in the test zone
+          RUN_PREFIX="ci-${{ github.run_id }}-"
+          DNS_RECORDS=$(curl -fsSL \
+            -H "Authorization: Bearer $CF_API_TOKEN_CI" \
+            "https://api.cloudflare.com/client/v4/zones/$CF_TEST_ZONE_ID/dns_records?per_page=100" \
+            | jq -r ".result[] | select(.name | startswith(\"$RUN_PREFIX\")) | .id")
+
+          for RECORD_ID in $DNS_RECORDS; do
+            echo "Deleting DNS record $RECORD_ID"
+            curl -fsSL -X DELETE \
+              -H "Authorization: Bearer $CF_API_TOKEN_CI" \
+              "https://api.cloudflare.com/client/v4/zones/$CF_TEST_ZONE_ID/dns_records/$RECORD_ID"
+          done
+
+          # Remove any lingering CI Access apps
+          ACCESS_APPS=$(curl -fsSL \
+            -H "Authorization: Bearer $CF_API_TOKEN_CI" \
+            "https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT_ID/access/apps?per_page=100" \
+            | jq -r ".result[] | select(.domain | startswith(\"$RUN_PREFIX\")) | .id")
+
+          for APP_ID in $ACCESS_APPS; do
+            echo "Deleting Access app $APP_ID"
+            curl -fsSL -X DELETE \
+              -H "Authorization: Bearer $CF_API_TOKEN_CI" \
+              "https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT_ID/access/apps/$APP_ID"
+          done
+
+          # Delete the ephemeral tunnel (force — cleans up config too)
+          echo "Deleting tunnel $TUNNEL_ID"
+          curl -fsSL -X DELETE \
+            -H "Authorization: Bearer $CF_API_TOKEN_CI" \
+            "https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT_ID/cfd_tunnel/$TUNNEL_ID?force=true"
+
+          echo "Cleanup complete"

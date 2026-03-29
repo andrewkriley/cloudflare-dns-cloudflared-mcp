@@ -1,0 +1,9 @@
+#!/bin/sh
+# Pre-push hook: run unit tests before any push completes
+echo "Running unit tests before push..."
+npm test
+if [ $? -ne 0 ]; then
+  echo ""
+  echo "Unit tests failed — push blocked. Fix the tests and try again."
+  exit 1
+fi
