@@ -280,7 +280,13 @@ export async function listServices(
   const services: ServiceEntry[] = [];
 
   for (const tunnel of tunnels) {
-    const config = (await getTunnelConfig(token, accountId, tunnel.id)) as TunnelConfig;
+    let config: TunnelConfig;
+    try {
+      config = (await getTunnelConfig(token, accountId, tunnel.id)) as TunnelConfig;
+    } catch {
+      // Tunnel has no config yet (e.g. freshly created) — no services to list
+      continue;
+    }
     const namedRules = config.config.ingress.filter((r) => r.hostname !== undefined);
 
     for (const rule of namedRules) {
