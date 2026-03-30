@@ -1,1 +1,1 @@
-10.54.30.10 ansible_user=andreril
+192.168.1.100 ansible_user=your_user
