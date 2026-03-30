@@ -1,0 +1,73 @@
+---
+# Configures an SSH host to accept Cloudflare short-lived certificates.
+#
+# Variables (pass via -e or group_vars):
+#   cloudflare_ssh_ca_public_key  - CA public key from service_expose_ssh output
+#   ssh_username                  - Local account Cloudflare certs log in as
+#   allowed_principals            - List of email addresses permitted (from allowed_emails)
+#
+# Example:
+#   ansible-playbook cloudflare-ssh-ca.yml \
+#     -i inventory \
+#     -e "ssh_username=admin" \
+#     -e "allowed_principals=['user@example.com']" \
+#     -e "cloudflare_ssh_ca_public_key='ecdsa-sha2-nistp256 AAAA...'"
+
+- name: Configure Cloudflare SSH CA on host
+  hosts: all
+  become: true
+
+  vars:
+    ca_key_path: /etc/ssh/cloudflare_ca.pub
+    principals_dir: /etc/ssh/principals
+
+  tasks:
+    - name: Deploy Cloudflare SSH CA public key
+      ansible.builtin.copy:
+        content: "{{ cloudflare_ssh_ca_public_key }}\n"
+        dest: "{{ ca_key_path }}"
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Restart sshd
+
+    - name: Create principals directory
+      ansible.builtin.file:
+        path: "{{ principals_dir }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Write principals file for {{ ssh_username }}
+      ansible.builtin.copy:
+        content: "{{ ([allowed_principals] if allowed_principals is string else allowed_principals) | join('\n') }}\n"
+        dest: "{{ principals_dir }}/{{ ssh_username }}"
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Restart sshd
+
+    - name: Configure sshd — TrustedUserCAKeys
+      ansible.builtin.lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: "^#?TrustedUserCAKeys"
+        line: "TrustedUserCAKeys {{ ca_key_path }}"
+        state: present
+        validate: sshd -t -f %s
+      notify: Restart sshd
+
+    - name: Configure sshd — AuthorizedPrincipalsFile
+      ansible.builtin.lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: "^#?AuthorizedPrincipalsFile"
+        line: "AuthorizedPrincipalsFile {{ principals_dir }}/%u"
+        state: present
+        validate: sshd -t -f %s
+      notify: Restart sshd
+
+  handlers:
+    - name: Restart sshd
+      ansible.builtin.service:
+        name: ssh
+        state: restarted
