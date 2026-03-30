@@ -8,6 +8,22 @@ Releases are generated automatically from [Conventional Commits](https://www.con
 
 ---
 
+## [3.1.0](https://github.com/andrewkriley/cloudflare-dns-cloudflared-mcp/compare/cloudflare-dns-cloudflared-mcp-v3.0.0...cloudflare-dns-cloudflared-mcp-v3.1.0) (2026-03-30)
+
+
+### Features
+
+* ansible script for updating host for short-lived keys ([912f714](https://github.com/andrewkriley/cloudflare-dns-cloudflared-mcp/commit/912f714d97e06b35f88bdcba28e140ab6b18742a))
+* introduce versioning — single source of truth from package.json ([7c6f5b1](https://github.com/andrewkriley/cloudflare-dns-cloudflared-mcp/commit/7c6f5b12eede2f14a0f09fa7764ec8f87a21f919))
+* introduce versioning with release-please and GHCR Docker publish ([ad60737](https://github.com/andrewkriley/cloudflare-dns-cloudflared-mcp/commit/ad607370d545b4519ac9fef8501969f9bcfab5b9))
+* single source of truth for version + health endpoint versioning ([864f188](https://github.com/andrewkriley/cloudflare-dns-cloudflared-mcp/commit/864f188d7dc2355ce75e45515c1b486aae9c5f91))
+
+
+### Bug Fixes
+
+* skip tunnels with no config in listServices to prevent API error 1055 ([4c118be](https://github.com/andrewkriley/cloudflare-dns-cloudflared-mcp/commit/4c118be5631d14e06a61ad87898558279616335b))
+* skip tunnels with no config in listServices to prevent API error 1055 ([0790d8d](https://github.com/andrewkriley/cloudflare-dns-cloudflared-mcp/commit/0790d8d52c91e58871ec3aa9053b4f79c21ccb87))
+
 ## [3.0.0] — 2026-03-29
 
 ### Added
