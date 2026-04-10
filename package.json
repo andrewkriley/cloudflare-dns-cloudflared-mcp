@@ -1,11 +1,13 @@
 {
   "name": "cloudflare-dns-cloudflared-mcp",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "description": "Self-hosted MCP server for Cloudflare DNS and cloudflared tunnel administration",
   "type": "module",
   "main": "dist/index.js",
   "scripts": {
     "prepare": "git config core.hooksPath .githooks || true",
+    "sync-version": "node scripts/sync-version.mjs",
+    "verify-version": "node scripts/verify-version.mjs",
     "build": "tsc",
     "start": "node dist/index.js",
     "dev": "node --watch --experimental-strip-types src/index.ts",
