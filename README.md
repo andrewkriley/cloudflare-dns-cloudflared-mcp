@@ -1,5 +1,7 @@
 # cloudflare-dns-cloudflared-mcp
 
+[![Version](https://img.shields.io/github/v/release/andrewkriley/cloudflare-dns-cloudflared-mcp?label=version)](https://github.com/andrewkriley/cloudflare-dns-cloudflared-mcp/releases/latest)
+
 ![Architecture](docs/architecture.svg)
 
 Self-hosted MCP server for administering **Cloudflare DNS** and **cloudflared tunnel** services — expose SSH hosts, web UIs, and other services on your home network through Cloudflare Tunnels with Google OAuth access control.
@@ -210,12 +212,14 @@ Every push and pull request runs:
 | Secret scanning | Gitleaks | Detects accidentally committed tokens |
 | TypeScript check | `tsc --noEmit` | Strict compile-time correctness |
 | ESLint | `eslint` | Code quality and style |
-| Unit tests | Vitest | 16 mocked tests — workflow tool logic |
+| Unit tests | Vitest | Mocked tests — workflow tool logic |
 | Dependency audit | `npm audit --audit-level=high` | Flags high/critical vulnerabilities |
 | Docker build | `docker/build-push-action` | Verifies image builds successfully |
 | Tunnel integration tests | Vitest + real cloudflared | Full lifecycle against a real ephemeral tunnel |
+| VERSION ↔ package.json | `npm run verify-version` | Keeps root `VERSION` and `package.json` in sync |
+| Version bump (PRs) | Compare `VERSION` to base | Every PR must bump `VERSION` when present on base (see [VERSIONING.md](VERSIONING.md)) |
 
-All 7 checks are required for a PR to merge to `main`.
+All checks above are required for a PR to merge to `main` once enabled in branch protection. Pushing a tag `v*.*.*` runs the **Release** workflow (GitHub Release + GHCR image + `latest` git tag).
 
 ---
 
@@ -261,7 +265,9 @@ Then expose via `service_expose_web` with `backend_port: 3000, backend_protocol:
 
 ## Versioning
 
-The release version is the `version` field in `package.json`. Update it and `CHANGELOG.md` when you cut a release. Docker images are built locally or in CI via `docker compose` / `Dockerfile` in this repository.
+The canonical version is the root **`VERSION`** file (same pattern as [splunk-lab](https://github.com/andrewkriley/splunk-lab)). Run **`npm run sync-version`** to copy it into `package.json`. Pushing a tag `v*.*.*` triggers a GitHub Release and publishes the Docker image to **GHCR**.
+
+See **[VERSIONING.md](VERSIONING.md)** for the full workflow, CI rules, and tag format.
 
 ---
 

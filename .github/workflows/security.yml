@@ -101,3 +101,42 @@ jobs:
 
       - name: npm audit
         run: npm audit --audit-level=high
+
+  # VERSION is the release source of truth; package.json must match (run `npm run sync-version`).
+  version-sync:
+    name: Version sync check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify VERSION matches package.json
+        run: npm run verify-version
+
+  # Every PR must bump VERSION (same idea as splunk-lab). Skip if base has no VERSION yet.
+  version-bump:
+    name: Version bump
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check VERSION was bumped
+        run: |
+          BASE_REF="${{ github.base_ref }}"
+          if ! git show "origin/${BASE_REF}:VERSION" > /tmp/base-version.txt 2>/dev/null; then
+            echo "No VERSION on base branch — skipping bump check."
+            exit 0
+          fi
+          BASE=$(tr -d '\r\n' < /tmp/base-version.txt)
+          HEAD=$(tr -d '\r\n' < VERSION)
+          echo "Base VERSION: $BASE"
+          echo "PR VERSION:   $HEAD"
+          if [ "$BASE" = "$HEAD" ]; then
+            echo "ERROR: VERSION file was not updated. Bump VERSION (then run npm run sync-version) before merging."
+            exit 1
+          fi
+          echo "✓ VERSION bumped: $BASE → $HEAD"
