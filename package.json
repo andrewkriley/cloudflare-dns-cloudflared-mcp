@@ -1,6 +1,6 @@
 {
   "name": "cloudflare-dns-cloudflared-mcp",
-  "version": "3.0.2",
+  "version": "3.0.3",
   "description": "Self-hosted MCP server for Cloudflare DNS and cloudflared tunnel administration",
   "type": "module",
   "main": "dist/index.js",

@@ -6,6 +6,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ---
 
+## [3.0.3] — 2026-07-26
+
+### Fixed
+
+- Regenerated `package-lock.json` to fix npm audit "Invalid package tree" CI failures
+- Resolved high-severity transitive advisories; `npm audit --audit-level=high` passes
+
 ## [3.0.1] — 2026-04-10
 
 ### Added
