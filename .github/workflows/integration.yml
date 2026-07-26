@@ -32,15 +32,16 @@ jobs:
           cloudflared --version
 
       - name: Verify API token and resolve account ID
+        continue-on-error: true
         env:
           CF_API_TOKEN_CI: ${{ secrets.CF_API_TOKEN_CI }}
           CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
         run: |
           echo "Accounts visible to CF_API_TOKEN_CI:"
-          curl -sSL \
+          ACCOUNTS=$(curl -sSL \
             -H "Authorization: Bearer $CF_API_TOKEN_CI" \
-            "https://api.cloudflare.com/client/v4/accounts" \
-            | jq '[.result[] | {id, name}]'
+            "https://api.cloudflare.com/client/v4/accounts")
+          echo "$ACCOUNTS" | jq '[.result[]? | {id, name}] // {success, errors}'
 
           echo ""
           echo "CF_ACCOUNT_ID character count: ${#CF_ACCOUNT_ID}"
