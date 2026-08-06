@@ -6,6 +6,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ---
 
+## [3.0.4] — 2026-08-06
+
+### Fixed
+
+- Refreshed `package-lock.json` for latest npm audit advisories (brace-expansion, fast-uri, hono)
+
 ## [3.0.3] — 2026-07-26
 
 ### Fixed
